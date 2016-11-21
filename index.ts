@@ -7,14 +7,15 @@ import {ID} from './src/types/id';
 
 var objSchema = {
     types: {
-        User: {
-            id: string().primary(),
-            name: string().required(),
-            status: boolean().required()
-        },
         Message: {
             id: string().primary(),
             message: string().required()
+        },
+        User: {
+            id: string().primary(),
+            name: string().required(),
+            status: boolean().required(),
+            messages: '[Message]'
         }
     },
     queries: {
@@ -47,7 +48,6 @@ var schema = getSchema([objSchema], [resolvers]);
 console.log(JSON.stringify(schema));
 
 export function getSchema(schema: any[], resolvers: any[]): any {
-    console.log(JSON.stringify(schema));
     const generator = new SchemaGenerator();
     return generator.generate(schema, resolvers);
 }
