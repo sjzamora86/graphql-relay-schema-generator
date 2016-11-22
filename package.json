@@ -1,12 +1,12 @@
 {
-  "name": "graphql-schema-generator",
-  "version": "1.0.13",
-  "description": "GraphQL Schema generator from Object Schema",
+  "name": "graphql-relay-schema-generator",
+  "version": "1.0.1",
+  "description": "GraphQL Relay compliant Schema generator",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "tsc & ts-node index.ts"
+    "start": "ts-node index.ts"
   },
   "repository": {
     "type": "git",
@@ -18,9 +18,9 @@
   "author": "Joan Zamora <sjzdevworld@gmail.com>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/sjzamora86/graphql-schema-generator/issues"
+    "url": "https://github.com/sjzamora86/graphql-relay-schema-generator/issues"
   },
-  "homepage": "https://github.com/sjzamora86/graphql-schema-generator",
+  "homepage": "https://github.com/sjzamora86/graphql-relay-schema-generator",
   "dependencies": {
     "@types/bluebird": "^3.0.35",
     "bluebird": "^3.4.6",

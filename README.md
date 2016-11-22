@@ -1,2 +1,2 @@
-# graphql-schema-generator
-GraphQL Schema generator from query
+# graphql-relay-schema-generator
+This library aims to generate a GraphQL Relay compliant schema

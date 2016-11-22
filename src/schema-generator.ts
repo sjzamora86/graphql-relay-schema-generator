@@ -1,55 +1,91 @@
-import * as R from 'ramda';
-import {getGraphQLType} from './helper/index';
+import {
+    getGraphQLType,
+    mergeAll,
+    isList,
+    getListTypes,
+    removeBrackets,
+    hasArgs
+} from './helper/index';
+import {Dictionary} from './helper/dictionary';
+
 const graphql = require('graphql');
-const mergeAll = R.mergeAll;
-const isNested = (val, key) => !R.hasIn('_type', val);
-const isNotNested = (val, key) => R.hasIn('_type', val);
-const createGraphQLObject = (name: string, fields: any) => {
+const R = require('ramda');
+const graphQLObjecTypes: Dictionary<any> = new Dictionary<any>();
+const graphQLQueries: Dictionary<any> = new Dictionary<any>();
+let mergeSchemas: any;
+let mergeResolvers: any;
+
+const createObject = (name: string, fields: any) => {
     return new graphql.GraphQLObjectType({
-        name: `Auto${name}`,
+        name: name,
         description: `Auto generated description ${name}`,
-        fields: () => (R.mapObjIndexed(createGraphQLFields, fields))
+        fields: () => (R.map(createGraphQLFields, fields))
     });
 };
-const createGraphQLFields = (field: any, key: any, obj: any) => {
-    if (R.hasIn('_type', field)) {
+const createGraphQLFields = (field: any) => {
+    if (R.is(Object, field)) {
         return {
-            type: field.isRequired ? new graphql.GraphQLNonNull(getGraphQLType(field)) : getGraphQLType(field)
+            type: getGraphQLType(field)
         }
-    } else {
+    }
+    else if (isList(field)) {
         return {
-            type: new graphql.GraphQLList(createGraphQLObject(key, field))
+            type: new graphql.GraphQLList(graphQLObjecTypes.item(removeBrackets(field)))
         }
+    }
+
+};
+
+const createGraphQLObjectFromList = (itemType: string) => {
+    if (!graphQLObjecTypes.containsKey(itemType)) {
+        graphQLObjecTypes.add(itemType, createObject(itemType, mergeSchemas.types[itemType]));
     }
 };
 
-const createGraphQLQueries = (query: any, key: any, obj: any) => {
+const createGraphQLObject = (fields: any, itemType: string) => {
+    if (!graphQLObjecTypes.containsKey(itemType)) {
+        graphQLObjecTypes.add(itemType, createObject(itemType, fields));
+    }
+};
 
+const createGraphQLQueries = (query: any, queryName: string) => {
+    if (!graphQLQueries.containsKey(queryName)) {
+        graphQLQueries.add(queryName, createGraphQLQuery(query, queryName));
+    }
+};
+
+const createGraphQLQuery = (query: any, queryName: string) => {
+    let graphQLQuery: any = {};
+    graphQLQuery['type'] = isList(query.type) ? new graphql.GraphQLList(graphQLObjecTypes.item(removeBrackets(query.type))) : graphQLObjecTypes.item(query.type);
+    if (hasArgs(query)) graphQLQuery['args'] = R.map(createGraphQLFields, query.args);
+    if (R.hasIn(queryName, mergeResolvers)) graphQLQuery['resolve'] = R.prop(queryName, mergeResolvers);
+    return graphQLQuery;
 };
 
 export class SchemaGenerator {
 
     generate(schemas: any[], resolvers: any[]): any {
 
-        const finalSchema = mergeAll(schemas);
-        const finalResolvers = mergeAll(resolvers);
+        mergeSchemas = mergeAll(schemas);
+        mergeResolvers = mergeAll(resolvers);
 
-        return finalSchema;
+        const listTypes = getListTypes(mergeSchemas.types);
+        const omitted = R.omit(listTypes, mergeSchemas.types);
+        R.map(createGraphQLObjectFromList, listTypes);
+        R.mapObjIndexed(createGraphQLObject, omitted);
+        R.mapObjIndexed(createGraphQLQueries, mergeSchemas.queries);
 
-        /*let rootQueryFields = {};
-        R.map((query: any) => {
-            R.mapObjIndexed(createGraphQLQueries, query);
-        }, queries);
+        const queries = graphQLQueries.getItems();
 
         const RootQuery = new graphql.GraphQLObjectType({
             name: 'RootQuery',
-            fields: rootQueryFields
+            fields: queries
         });
 
         const GraphQLSchema = new graphql.GraphQLSchema({
             query: RootQuery
         });
 
-        return GraphQLSchema;*/
+        return GraphQLSchema;
     }
 }
