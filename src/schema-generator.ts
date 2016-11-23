@@ -2,9 +2,11 @@ import {
     getGraphQLType,
     mergeAll,
     isList,
+    getPrimaryKey,
     getListTypes,
     removeBrackets,
-    hasArgs
+    createSimpleQueryType,
+    createPaginationQueryType, filterKey, hasArgs, isListString
 } from './helper/index';
 import {Dictionary} from './helper/dictionary';
 
@@ -22,6 +24,7 @@ const createObject = (name: string, fields: any) => {
         fields: () => (R.map(createGraphQLFields, fields))
     });
 };
+
 const createGraphQLFields = (field: any) => {
     if (R.is(Object, field)) {
         return {
@@ -56,11 +59,19 @@ const createGraphQLQueries = (query: any, queryName: string) => {
 
 const createGraphQLQuery = (query: any, queryName: string) => {
     let graphQLQuery: any = {};
-    graphQLQuery['type'] = isList(query.type) ? new graphql.GraphQLList(graphQLObjecTypes.item(removeBrackets(query.type))) : graphQLObjecTypes.item(query.type);
-    if (hasArgs(query)) graphQLQuery['args'] = R.map(createGraphQLFields, query.args);
+    let queryType = query.type;
+    if(hasArgs(query)) graphQLQuery['args'] = R.map(createGraphQLFields, query.args);
     if (R.hasIn(queryName, mergeResolvers)) graphQLQuery['resolve'] = R.prop(queryName, mergeResolvers);
-    return graphQLQuery;
+
+    if (isListString(queryType)) {
+        queryType = removeBrackets(query.type);
+        const primaryKey = getPrimaryKey(filterKey(mergeSchemas.types[queryType]));
+        return R.merge(graphQLQuery, createPaginationQueryType(queryType, graphQLObjecTypes.item(queryType), primaryKey));
+    }
+
+    return R.merge(graphQLQuery, createSimpleQueryType(graphQLObjecTypes.item(queryType)));
 };
+
 
 export class SchemaGenerator {
 
