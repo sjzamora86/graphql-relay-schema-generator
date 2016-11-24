@@ -9,21 +9,31 @@ const hasType = R.hasIn('_type');
 const hasArgs = R.hasIn('args');
 const clone = R.clone;
 
-const isPrimaryKey = (obj: any) => {
-    if(!R.is(Object, obj)) return false;
-    return obj.isPrimary();
-};
+//Function helpers to get list types
 const withListType = value => !R.isEmpty(value);
-const isListString = (value: string) => {
-    return (value[0] == '[' && value[value.length - 1] == ']')
-};
-const isList = R.match(/.*\[.*\].*/g);
-const pipeListType = R.pipe(R.pickBy(isListString), R.values);
+const conditionObject = R.cond([
+    [R.is(Object), R.always('')],
+    [R.is(String), (str) => str]
+]);
+const isList = R.compose(R.not, R.isEmpty, R.match(/.*\[.*\].*/g), conditionObject);
+const pipeListType = R.pipe(R.pickBy(isList), R.values);
 const removeBrackets = (value: string) => {
     return R.replace(/[\[\]']+/g, '', value);
 };
+
+//Function helpers to get primary keys
+const isPrimaryKey = (obj: any) => {
+    if (!R.is(Object, obj)) return false;
+    return obj.isPrimary();
+};
 const filterKey = R.filter(isPrimaryKey);
 const getPrimaryKey = R.compose(R.head, R.keys);
+
+//Function helpers for sub resolvers
+const hasSubItemResolverFormatCond = R.compose(R.equals(2), R.length, R.split('.'));
+const hasSubItemResolverFormat = s => hasSubItemResolverFormatCond(s);
+const hasSubItemResolver = R.compose(R.not, R.isEmpty, R.filter(hasSubItemResolverFormat), R.keys);
+
 
 export function getListTypes(types: any): any {
     const filterProps = R.filter(withListType, R.map(pipeListType, types));
@@ -101,9 +111,9 @@ export function createEdgeType(name: string, graphQLType: any, primaryKey: strin
 export {getPrimaryKey};
 export {filterKey};
 export {isList};
-export {isListString};
 export {mergeAll};
 export {hasType};
 export {hasArgs};
 export {clone};
 export {removeBrackets};
+export {hasSubItemResolver};
